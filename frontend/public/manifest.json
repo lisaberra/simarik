@@ -1,0 +1,35 @@
+{
+  "name": "Şımarık - AI Stil Danışmanın",
+  "short_name": "Şımarık",
+  "description": "Yapay zeka ve uçan stil danışmanın Bibble ile gardırobundan mükemmel kombinler yarat.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF7F2",
+  "theme_color": "#e8eefa",
+  "icons": [
+    {
+      "src": "/icon-512.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "fashion", "shopping"],
+  "shortcuts": [
+    {
+      "name": "Bibble'a Sor",
+      "short_name": "Bibble",
+      "description": "Bibble ile hızlı kombin oluştur",
+      "url": "/#bibble",
+      "icons": [{ "src": "/icon-512.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Gardırobum",
+      "short_name": "Gardırop",
+      "description": "Kıyafetlerini görüntüle ve düzenle",
+      "url": "/#gardrobum",
+      "icons": [{ "src": "/icon-512.svg", "sizes": "96x96" }]
+    }
+  ]
+}

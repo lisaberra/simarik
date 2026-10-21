@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Send, User, Bot, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import BibbleCharacter from './BibbleCharacter';
+import { chatBibble } from '../lib/bibbleEngine';
 
 export default function StilDanismani({ onClose, wardrobe, API_URL }) {
   const { user, isLoggedIn } = useAuth();
@@ -71,24 +72,16 @@ export default function StilDanismani({ onClose, wardrobe, API_URL }) {
     setIsTyping(true);
 
     try {
-      const res = await fetch(`${API_URL}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userMsg,
-          history: messages, // Send past history for context
-          user_context: user,
-          wardrobe: wardrobe || []
-        })
+      const reply = await chatBibble({
+        API_URL,
+        message: userMsg,
+        history: messages,
+        user,
+        wardrobe: wardrobe || []
       });
-
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      
-      setMessages(prev => [...prev, { role: 'assistant', text: data.response || "Yip yip! Bir şeyler ters gitti, peri tozumu yenileyip geliyorum!" }]);
+      setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', text: "Olamaz! Büyü bozuldu (API hatası). Birazdan tekrar dene canım." }]);
+      setMessages(prev => [...prev, { role: 'assistant', text: "Yip yip! Küçük bir peri tozu karışıklığı oldu ama buradayım! 💜" }]);
     } finally {
       setIsTyping(false);
     }

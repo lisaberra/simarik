@@ -19,6 +19,8 @@ import SarkinaGoreKombin from './components/SarkinaGoreKombin';
 import AuthModal from './components/AuthModal';
 import ProfileDrawer from './components/ProfileDrawer';
 import StilDanismani from './components/StilDanismani';
+import MobileNavBar from './components/MobileNavBar';
+import InstallPrompt from './components/InstallPrompt';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -323,7 +325,7 @@ function AppContent() {
           onOpenAdvisor={() => setShowAdvisor(true)}
         />
 
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 mobile-main">
           {renderPage()}
         </main>
 
@@ -344,6 +346,16 @@ function AppContent() {
           </div>
         </aside>
       </div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <MobileNavBar
+        activePage={activePage}
+        setActivePage={setActivePage}
+        onOpenAdvisor={() => setShowAdvisor(true)}
+      />
+
+      {/* PWA Mobile Install Banner */}
+      <InstallPrompt />
 
       {/* Modals & Drawers */}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
