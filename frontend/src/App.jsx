@@ -25,30 +25,111 @@ import InstallPrompt from './components/InstallPrompt';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const getDemoWardrobe = (gender) => {
-  const isMale = gender === 'Erkek';
-  
-  const common = [
-    { id: 'w1', name: 'Beyaz Basic Tişört', category: 'Üst', color: 'Beyaz', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&auto=format&fit=crop&q=80', season: 'Dört Mevsim' },
-    { id: 'w2', name: 'Siyah Basic Tişört', category: 'Üst', color: 'Siyah', image: 'https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?w=400&auto=format&fit=crop&q=80', season: 'Dört Mevsim' },
-    { id: 'w3', name: 'Mavi Kot Pantolon', category: 'Alt', color: 'Mavi', image: 'https://images.unsplash.com/photo-1542272604-780c8d47b096?w=400&auto=format&fit=crop&q=80', season: 'Dört Mevsim' },
-    { id: 'w4', name: 'Siyah Kot Pantolon', category: 'Alt', color: 'Siyah', image: 'https://images.unsplash.com/photo-1604176354204-9268737828e4?w=400&auto=format&fit=crop&q=80', season: 'Dört Mevsim' },
-    { id: 'w5', name: 'Beyaz Sneaker Ayakkabı', category: 'Ayakkabı', color: 'Beyaz', image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&auto=format&fit=crop&q=80', season: 'Dört Mevsim' },
-    { id: 'w6', name: 'Siyah Basic Ayakkabı', category: 'Ayakkabı', color: 'Siyah', image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&auto=format&fit=crop&q=80', season: 'Dört Mevsim' },
-  ];
-
-  if (isMale) {
-    return [
-      ...common,
-      { id: 'w7', name: 'Siyah Sırt Çantası', category: 'Aksesuar', color: 'Siyah', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&auto=format&fit=crop&q=80', season: 'Dört Mevsim' },
-      { id: 'w8', name: 'Siyah Bere', category: 'Aksesuar', color: 'Siyah', image: 'https://images.unsplash.com/photo-1576871337635-b1a134707e7b?w=400&auto=format&fit=crop&q=80', season: 'Kış' },
-    ];
-  }
-
-  // Kadın / Belirtilmedi
   return [
-    ...common,
-    { id: 'w7', name: 'Siyah Çanta', category: 'Aksesuar', color: 'Siyah', image: 'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?w=400&auto=format&fit=crop&q=80', season: 'Dört Mevsim' },
-    { id: 'w8', name: 'Şal', category: 'Aksesuar', color: 'Bej', image: 'https://images.unsplash.com/photo-1584030373081-f37b7bb4fa8e?w=400&auto=format&fit=crop&q=80', season: 'Sonbahar' },
+    {
+      id: 'w1',
+      name: 'Beyaz Askılı Mini Elbise',
+      category: 'Elbise',
+      color: 'Beyaz',
+      image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500&auto=format&fit=crop&q=80',
+      season: 'Yaz'
+    },
+    {
+      id: 'w2',
+      name: 'Beyaz Basic Tişört',
+      category: 'Üst',
+      color: 'Beyaz',
+      image: '/demo-clothes/white-tshirt.jpg',
+      season: 'Yaz'
+    },
+    {
+      id: 'w3',
+      name: 'Siyah Crop Top',
+      category: 'Üst',
+      color: 'Siyah',
+      image: '/demo-clothes/black-crop-top.jpg',
+      season: 'Yaz'
+    },
+    {
+      id: 'w4',
+      name: 'Bordo Triko Kazak',
+      category: 'Üst',
+      color: 'Bordo',
+      image: '/demo-clothes/burgundy-sweater.jpg',
+      season: 'Kış'
+    },
+    {
+      id: 'w5',
+      name: 'Mavi Çizgili Gömlek',
+      category: 'Üst',
+      color: 'Mavi',
+      image: '/demo-clothes/striped-shirt.jpg',
+      season: 'İlkbahar'
+    },
+    {
+      id: 'w6',
+      name: 'Mavi Geniş Paça Jean',
+      category: 'Alt',
+      color: 'Mavi',
+      image: '/demo-clothes/blue-wide-jeans.jpg',
+      season: 'Dört Mevsim'
+    },
+    {
+      id: 'w7',
+      name: 'Siyah Deri Pantolon',
+      category: 'Alt',
+      color: 'Siyah',
+      image: '/demo-clothes/black-leather-pants.jpg',
+      season: 'Sonbahar'
+    },
+    {
+      id: 'w8',
+      name: 'Bej Saten Midi Etek',
+      category: 'Alt',
+      color: 'Bej',
+      image: '/demo-clothes/beige-midi-skirt.jpg',
+      season: 'İlkbahar'
+    },
+    {
+      id: 'w9',
+      name: 'Bej Klasik Trençkot',
+      category: 'Dış',
+      color: 'Bej',
+      image: '/demo-clothes/beige-trenchcoat.jpg',
+      season: 'Sonbahar'
+    },
+    {
+      id: 'w10',
+      name: 'Kahverengi Oversize Blazer',
+      category: 'Dış',
+      color: 'Kahverengi',
+      image: '/demo-clothes/brown-blazer.jpg',
+      season: 'Sonbahar'
+    },
+    {
+      id: 'w11',
+      name: 'Beyaz Sneaker',
+      category: 'Ayakkabı',
+      color: 'Beyaz',
+      image: '/demo-clothes/white-sneakers.jpg',
+      season: 'Dört Mevsim'
+    },
+    {
+      id: 'w12',
+      name: 'Siyah İnce Topuklu Ayakkabı',
+      category: 'Ayakkabı',
+      color: 'Siyah',
+      image: '/demo-clothes/black-heels.jpg',
+      season: 'Dört Mevsim'
+    },
+    {
+      id: 'w13',
+      name: 'Siyah Deri Kol Çantası',
+      category: 'Aksesuar',
+      color: 'Siyah',
+      image: '/demo-clothes/black-handbag.jpg',
+      season: 'Dört Mevsim'
+    }
   ];
 };
 
@@ -77,23 +158,25 @@ function AppContent() {
 
   /* İlk açılışta veya giriş durumunda gardrobu yükle */
   useEffect(() => {
-    if (!isLoggedIn) {
-      setWardrobe(getDemoWardrobe('Kadın')); // Giriş yapmadan da site kullanılabilmeli, varsayılan gardırobu yükle
-    } else {
-      setShowAuth(false); // Giriş yapıldıysa modalı kapat
-      const saved = localStorage.getItem('demo_wardrobe');
-      if (saved) {
+    const saved = localStorage.getItem('demo_wardrobe_v2');
+    if (saved) {
+      try {
         setWardrobe(JSON.parse(saved));
-      } else {
-        setWardrobe(getDemoWardrobe(user?.gender || 'Kadın'));
+      } catch {
+        setWardrobe(getDemoWardrobe('Kadın'));
       }
+    } else {
+      setWardrobe(getDemoWardrobe('Kadın'));
     }
-  }, [isLoggedIn, user]);
+    if (isLoggedIn) {
+      setShowAuth(false);
+    }
+  }, [isLoggedIn]);
 
   // Yeni kıyafet eklendiğinde local storage'ı güncelle
   useEffect(() => {
     if (wardrobe.length > 0) {
-      localStorage.setItem('demo_wardrobe', JSON.stringify(wardrobe));
+      localStorage.setItem('demo_wardrobe_v2', JSON.stringify(wardrobe));
     }
   }, [wardrobe]);
 
