@@ -32,23 +32,6 @@ const TR_CITIES = {
   'samsun': [41.29, 36.33], 'trabzon': [41.0, 39.72], 'van': [38.49, 43.38], 'çanakkale': [40.15, 26.41],
 };
 
-const SLOT_EMOJI = { 'Üst Giyim': '👚', 'Alt Giyim': '👖', 'Dış Giyim': '🧥', 'Ayakkabı': '👟', 'Aksesuar': '👜' };
-
-/* Görsel yüklenemezse çirkin kırık ikon yerine sevimli bir yer tutucu */
-function ItemImage({ item, label }) {
-  const [broken, setBroken] = useState(false);
-  const src = item.image || item.image_url;
-  if (!src || broken) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-pudra-50 to-bebe-50 rounded-xl">
-        <span className="text-3xl">{SLOT_EMOJI[label] || '✨'}</span>
-        <span className="text-[10px] text-kahve-400 mt-1 px-2 text-center line-clamp-2">{item.color}</span>
-      </div>
-    );
-  }
-  return <img src={src} alt={item.name} loading="lazy" onError={() => setBroken(true)} className="max-w-full max-h-full object-contain drop-shadow-sm" />;
-}
-
 /* Sesli istek (Web Speech API — destekleyen tarayıcılarda) */
 function useSpeech(onText) {
   const recRef = useRef(null);
@@ -172,16 +155,6 @@ export default function BanaOner({ wardrobe, favorites = [], onAddCombo, onPrevi
     setMessage('Kaydettim! Geçmiş kombinlerinde seni bekliyor. Bi-bb-le! 💾');
   };
 
-  const slots = result
-    ? [
-        { label: 'Üst Giyim', item: result.top_item },
-        { label: 'Alt Giyim', item: result.bottom_item },
-        { label: 'Dış Giyim', item: result.outer_item },
-        { label: 'Ayakkabı', item: result.shoes_item },
-        { label: 'Aksesuar', item: result.accessory_item },
-      ].filter((s) => s.item)
-    : [];
-
   return (
     <div className="space-y-5 animate-fade-in max-w-4xl mx-auto">
       {/* ── Sahne ── */}
@@ -277,18 +250,28 @@ export default function BanaOner({ wardrobe, favorites = [], onAddCombo, onPrevi
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            {slots.map((slot, i) => (
-              <div
-                key={slot.label}
-                className="bg-white rounded-2xl p-2.5 border border-kahve-100/60 shadow-soft flex flex-col"
-                style={{ animation: `slideUp 0.45s ease-out ${i * 0.08}s both` }}
-              >
-                <span className="text-[10px] font-bold text-kahve-400 mb-1.5 uppercase tracking-wider">{slot.label}</span>
-                <div className="aspect-square rounded-xl overflow-hidden bg-cream mb-2 flex items-center justify-center p-1.5">
-                  <ItemImage item={slot.item} label={slot.label} />
-                </div>
-                <p className="font-bold text-xs text-kahve-600 line-clamp-2 mt-auto">{slot.item.name}</p>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {[
+              { label: 'Üst Giyim', item: result.top_item },
+              { label: 'Alt Giyim', item: result.bottom_item },
+              { label: 'Dış Giyim', item: result.outer_item },
+              { label: 'Ayakkabı', item: result.shoes_item },
+              { label: 'Aksesuar', item: result.accessory_item },
+            ].map((slot, i) => (
+              <div key={i} className="bg-white rounded-2xl p-3 border border-kahve-100/50 shadow-soft flex flex-col hover:shadow-md transition-shadow">
+                <span className="text-[10px] font-bold text-kahve-400 block mb-2 uppercase tracking-wider">{slot.label}</span>
+                {slot.item ? (
+                  <>
+                    <div className="aspect-square rounded-xl overflow-hidden bg-cream mb-2 flex items-center justify-center p-2">
+                      <img src={slot.item.image || slot.item.image_url} alt={slot.item.name} className="max-w-full max-h-full object-contain drop-shadow-sm" />
+                    </div>
+                    <p className="font-bold text-xs text-kahve-600 truncate mt-auto">{slot.item.name}</p>
+                  </>
+                ) : (
+                  <div className="aspect-square rounded-xl bg-cream border-2 border-dashed border-kahve-100 flex items-center justify-center text-xs font-medium text-kahve-300">
+                    —
+                  </div>
+                )}
               </div>
             ))}
           </div>
