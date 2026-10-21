@@ -30,48 +30,75 @@ except Exception as e:
     client = None
     print(f"[HATA] GenAI Client başlatılamadı: {e}")
 
-# Fallback model zinciri — ilk çalışan kullanılır
+# Fallback model zinciri — ilk çalışan kullanılır.
+# Gemini modelleri yoğunlukta sık sık 503 döndüğü için zincir geniş tutuldu.
 MODEL_CHAIN = [
     "gemini-3.8-flash",
     "gemini-3.5-flash",
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
 ]
+
+PER_CALL_TIMEOUT = 20  # saniye
 
 
 async def generate_with_fallback(
     contents,
     config: types.GenerateContentConfig = None,
-    max_retries: int = 2,
 ) -> str:
     """
-    MODEL_CHAIN listesindeki modelleri sırayla dener.
-    503/UNAVAILABLE alırsa exponential backoff ile retry yapar.
+    MODEL_CHAIN listesindeki modelleri sırayla dener (async, timeout'lu).
+    503 / zaman aşımı / model bulunamadı → anında sıradaki modele geçer.
     """
     if not client:
         raise RuntimeError("Gemini API key eksik veya geçersiz.")
 
     last_error = None
     for model in MODEL_CHAIN:
-        for attempt in range(max_retries):
-            try:
-                response = client.models.generate_content(
+        try:
+            response = await asyncio.wait_for(
+                client.aio.models.generate_content(
                     model=model,
                     contents=contents,
                     config=config,
-                )
+                ),
+                timeout=PER_CALL_TIMEOUT,
+            )
+            if response.text:
                 return response.text
-            except Exception as e:
-                last_error = e
-                err = str(e)
-                if "503" in err or "UNAVAILABLE" in err or "overloaded" in err.lower():
-                    wait = 2 ** attempt
-                    print(f"[WARN] {model} meşgul (deneme {attempt+1}), {wait}s bekleniyor...")
-                    await asyncio.sleep(wait)
-                    continue
-                else:
-                    print(f"[WARN] {model} hata: {err[:120]}")
-                    break  # Bu modeli bırak, zincirdeki sonrakine geç
+            last_error = RuntimeError(f"{model} boş yanıt döndü")
+        except Exception as e:
+            last_error = e
+            print(f"[WARN] {model} başarısız: {str(e)[:120]}")
+            continue
 
     raise last_error or RuntimeError("Tüm modeller başarısız.")
+
+
+# ── Kategori normalizasyonu: her slot'a sadece doğru kategori girebilsin ──
+SLOT_CATEGORIES = {
+    "top_item": {"üst", "üst giyim", "elbise", "tek parça"},
+    "bottom_item": {"alt", "alt giyim"},
+    "outer_item": {"dış", "dış giyim"},
+    "shoes_item": {"ayakkabı"},
+    "accessory_item": {"aksesuar", "çanta"},
+}
+
+
+def _norm(s) -> str:
+    return str(s or "").replace("I", "ı").replace("İ", "i").strip().lower()
+
+
+def compact_wardrobe(wardrobe: list) -> list:
+    """Prompt'a sadece metin alanlarını koy — base64 görseller prompt'u şişirip modeli bozuyordu."""
+    keep = ("id", "name", "category", "color", "season", "style", "material", "pattern", "tags")
+    out = []
+    for item in wardrobe or []:
+        if not isinstance(item, dict):
+            continue
+        out.append({k: item[k] for k in keep if item.get(k) not in (None, "", [])})
+    return out
 
 
 app = FastAPI(title="Şımarık AI Styling API", version="3.0.0")
@@ -165,16 +192,18 @@ async def recommend_outfit(request_data: dict):
     Bibble AI Stylist Engine v3.0
     Model fallback zinciri, negative constraint uyumu, vibe analizi.
     """
-    prompt        = request_data.get("prompt", "").strip()
-    wardrobe      = request_data.get("wardrobe", [])
+    prompt        = (request_data.get("prompt") or "").strip()
+    wardrobe      = request_data.get("wardrobe") or request_data.get("user_inventory") or []
     weather       = request_data.get("weather", None)
-    favorites     = request_data.get("favorites", [])
-    recent_combos = request_data.get("recent_combos", [])
+    favorites     = request_data.get("favorites") or []
+    recent_combos = request_data.get("recent_combos") or []
 
     if not prompt:
         return {"error": "Prompt boş olamaz."}
     if not client:
         return {"error": "Gemini API key eksik veya geçersiz."}
+    if not wardrobe:
+        return {"error": "Dolap boş."}
 
     # Tarz profili (favori kombinlerden)
     fav_titles = [
@@ -201,9 +230,19 @@ async def recommend_outfit(request_data: dict):
     system_prompt = f"""
 Sen Bibble adında yapay zeka bir stil danışmanısın. Türkçe yanıt ver.
 
-GÖREV: Kullanıcının gardırobundan isteğe en uygun kombini seç.
+GÖREV: Kullanıcının gardırobundan isteğe EN UYGUN kombini seç.
 
 ═══ KESİN KURALLAR ═══
+
+0. İSTEĞE SADAKAT (EN ÖNEMLİ):
+   • Kullanıcının söylediği RENKLERİ, ETKİNLİĞİ ve TARZI birebir hedefle.
+   • "siyah" dediyse siyah parçaları, "spor" dediyse sneaker/tişört gibi rahat parçaları seç.
+   • İstekle alakasız parça seçme. Bir slot için uygun parça yoksa null bırak.
+   • Her slot'a SADECE o kategoriden parça koy:
+     top_item → "Üst" veya "Elbise" | bottom_item → "Alt" | outer_item → "Dış"
+     shoes_item → "Ayakkabı" | accessory_item → "Aksesuar"
+   • Elbise seçtiysen bottom_item null olmalı.
+   • ID'leri SADECE aşağıdaki dolap listesinden kullan, uydurma.
 
 1. NEGATİF KOMUTLAR (EN YÜKSEK ÖNCELİK):
    "istemiyorum", "olmasın", "yok" → O öğeyi KESİNLİKLE null yap.
@@ -230,7 +269,7 @@ GÖREV: Kullanıcının gardırobundan isteğe en uygun kombini seç.
 {style_profile}{repetition_guard}
 
 ═══ KULLANICININ DOLABI ═══
-{json.dumps(wardrobe, ensure_ascii=False)}
+{json.dumps(compact_wardrobe(wardrobe), ensure_ascii=False)}
 
 ═══ KULLANICININ İSTEĞİ ═══
 "{prompt}"
@@ -239,7 +278,7 @@ JSON (başka hiçbir şey yazma):
 {{
   "bibble_mood": "string",
   "title": "Kombin adı",
-  "reasoning": "Bibble'ın eğlenceli, laf sokan, vibe analizi içeren yorumu",
+  "reasoning": "Bibble'ın 2-4 cümlelik eğlenceli, tatlı-sivri dilli yorumu: neden bu parçalar isteğe uyuyor",
   "top_item": "ID veya null",
   "bottom_item": "ID veya null",
   "outer_item": "ID veya null",
@@ -254,15 +293,32 @@ JSON (başka hiçbir şey yazma):
             contents=[system_prompt],
             config=types.GenerateContentConfig(response_mime_type="application/json"),
         )
+        text = text.strip()
+        if text.startswith("```"):
+            text = text.strip("`").lstrip("json").strip()
         data = json.loads(text)
+        if isinstance(data, list):
+            data = data[0] if data else {}
 
-        # O(n) ID → wardrobe objesi dönüşümü
-        wardrobe_map = {str(item.get("id")): item for item in wardrobe}
-        for key in ["top_item", "bottom_item", "outer_item", "shoes_item", "accessory_item"]:
+        # ID → wardrobe objesi + kategori doğrulaması
+        wardrobe_map = {str(item.get("id")): item for item in wardrobe if isinstance(item, dict)}
+        filled = 0
+        for key, allowed in SLOT_CATEGORIES.items():
             item_id = data.get(key)
-            data[key] = wardrobe_map.get(str(item_id)) if item_id else None
+            item = wardrobe_map.get(str(item_id)) if item_id else None
+            if item and _norm(item.get("category")) not in allowed:
+                item = None  # Yanlış slota konmuş parçayı at
+            data[key] = item
+            filled += 1 if item else 0
 
-        data["compatibility_score"] = 95
+        if filled == 0:
+            return {"error": "Model geçerli parça seçemedi."}
+
+        data.setdefault("title", "Bibble Kombini")
+        data.setdefault("reasoning", "")
+        data.setdefault("style_tips", [])
+        data["compatibility_score"] = min(98, 80 + filled * 4)
+        data["source"] = "ai"
         return data
 
     except Exception as e:
@@ -288,17 +344,22 @@ async def chat_with_bibble(request: ChatRequest):
             m["text"] for m in request.history[-10:] if m.get("role") == "user"
         )
 
-        system_instruction = f"""Sen Bibble'sın — iğneleyici, laf sokan ama kullanıcının iyiliğini düşünen uzman bir sanal stilistsin. Türkçe konuş.
-Uçan, minik, mor-pembe bir peri figürsün. "Yip yip!", "Bi-bb-le!" gibi sesler çıkarabilirsin.
+        wardrobe_lines = ", ".join(
+            f"{w.get('name')} ({w.get('category')}, {w.get('color')})"
+            for w in compact_wardrobe(request.wardrobe)[:60]
+        )
+
+        system_instruction = f"""Sen Bibble'sın — iyi kalpli ama biraz sivri dilli, minik uçan bir peri stilistsin. Türkçe konuş.
+"Yip yip!" gibi sesler çıkarabilirsin.
 
 Kullanıcının vücut tipi: {body_type}. Buna uygun giyim tavsiyeleri ver.
-Dolabında {len(request.wardrobe)} parça var.
+DOLABINDAKİ PARÇALAR: {wardrobe_lines or 'Bilinmiyor'}
 Geçmiş konuşmadan tarz ipucu: {user_history_text or 'Yok'}
 
 KURALLAR:
-1. Yanıtlar KISA, KOMİK ve DİNAMİK olsun — uzun paragraflar yazma.
-2. Aynı şakayı/tepkiyi tekrarlama.
-3. Önce laf sok, sonra kullanıcının istediğini yap."""
+1. Yanıtlar KISA (en fazla 3-4 cümle), KOMİK ve SAMİMİ olsun.
+2. Kombin istenirse SADECE dolaptaki parçaları isimleriyle öner, isteğe uymayan parça önerme.
+3. Aynı şakayı tekrarlama. Kullanıcıyı kırma, tatlı tatlı takıl."""
 
         contents = [
             {"role": "user", "parts": [{"text": system_instruction}]},

@@ -1,130 +1,205 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 
 /* ═══════════════════════════════════════════════════════════════════════
-   BibbleCharacter v2.0 — Animasyonlu Bibble (CSS/SVG)
-   
-   Gerçek Bibble'dan ilham alınarak tasarlanmış — kanat çırpan, zıplayan,
-   tepki veren küçük mor-yeşil peri karakteri.
-   
+   BibbleCharacter v3.0 — Tüylü, kanat çırpan Bibble (SVG)
+
+   Referans: turkuaz tüylü gövde, mor benekler, pembe dik saç perçemi,
+   kocaman mavi gözler, saydam şeftali renkli kanatlar, mor ayaklar.
+   Tüy efekti SVG feTurbulence + feDisplacementMap ile yapılır.
+
    Props:
      - mood: 'mutlu' | 'saskin' | 'havali' | 'kizgin' | 'heyecanli' | 'romantik' | 'melankolik' | 'asi' | 'cool' | 'nostaljik' | 'idle'
-     - size: 'sm' | 'md' | 'lg' | 'xl'
-     - flying: true/false — idle uçma animasyonu
-     - showReaction: true/false — kombine tepki animasyonu
-     - reactionText: string — tepki baloncuğu metni
+     - size: 'sm' | 'md' | 'lg' | 'xl' | number (px)
+     - flying: true/false — yerinde süzülme animasyonu
+     - showReaction / reactionText — tepki baloncuğu
    ═══════════════════════════════════════════════════════════════════════ */
 
 const MOOD_CONFIG = {
-  mutlu:      { emoji: '✨', bgGlow: '#e879f9', bodyAnim: 'bibbleBounceHappy', wingSpeed: '0.3s' },
-  saskin:     { emoji: '😮', bgGlow: '#818cf8', bodyAnim: 'bibbleWobble', wingSpeed: '0.2s' },
-  havali:     { emoji: '😎', bgGlow: '#22d3ee', bodyAnim: 'bibbleFloat', wingSpeed: '0.5s' },
-  kizgin:     { emoji: '🔥', bgGlow: '#f87171', bodyAnim: 'bibbleShake', wingSpeed: '0.15s' },
-  heyecanli:  { emoji: '🎉', bgGlow: '#f472b6', bodyAnim: 'bibbleBounceHappy', wingSpeed: '0.2s' },
-  romantik:   { emoji: '💕', bgGlow: '#fb7185', bodyAnim: 'bibbleFloat', wingSpeed: '0.4s' },
-  melankolik: { emoji: '🌧️', bgGlow: '#94a3b8', bodyAnim: 'bibbleSad', wingSpeed: '0.8s' },
-  asi:        { emoji: '⚡', bgGlow: '#a855f7', bodyAnim: 'bibbleShake', wingSpeed: '0.2s' },
-  cool:       { emoji: '🧊', bgGlow: '#06b6d4', bodyAnim: 'bibbleFloat', wingSpeed: '0.5s' },
-  nostaljik:  { emoji: '📻', bgGlow: '#f59e0b', bodyAnim: 'bibbleFloat', wingSpeed: '0.6s' },
-  idle:       { emoji: '✨', bgGlow: '#c084fc', bodyAnim: 'bibbleIdle', wingSpeed: '0.4s' },
+  mutlu:      { emoji: '✨', glow: '#f0abfc', anim: 'bibbleBounceHappy', wing: '0.18s' },
+  saskin:     { emoji: '😮', glow: '#a5b4fc', anim: 'bibbleWobble', wing: '0.12s' },
+  havali:     { emoji: '😎', glow: '#67e8f9', anim: 'bibbleFloat', wing: '0.24s' },
+  kizgin:     { emoji: '💢', glow: '#fca5a5', anim: 'bibbleShake', wing: '0.1s' },
+  heyecanli:  { emoji: '🎉', glow: '#f9a8d4', anim: 'bibbleBounceHappy', wing: '0.12s' },
+  romantik:   { emoji: '💕', glow: '#fda4af', anim: 'bibbleFloat', wing: '0.22s' },
+  melankolik: { emoji: '🌧️', glow: '#cbd5e1', anim: 'bibbleSad', wing: '0.35s' },
+  asi:        { emoji: '⚡', glow: '#c084fc', anim: 'bibbleShake', wing: '0.12s' },
+  cool:       { emoji: '🧊', glow: '#67e8f9', anim: 'bibbleFloat', wing: '0.24s' },
+  nostaljik:  { emoji: '📻', glow: '#fcd34d', anim: 'bibbleFloat', wing: '0.28s' },
+  idle:       { emoji: '✨', glow: '#d8b4fe', anim: 'bibbleIdle', wing: '0.2s' },
 };
 
 const SIZE_MAP = {
-  sm: { w: 40, h: 40, text: 'text-[8px]' },
-  md: { w: 64, h: 64, text: 'text-[10px]' },
-  lg: { w: 96, h: 96, text: 'text-xs' },
-  xl: { w: 128, h: 128, text: 'text-sm' },
+  sm: { px: 44, text: 'text-[9px]' },
+  md: { px: 68, text: 'text-[10px]' },
+  lg: { px: 100, text: 'text-xs' },
+  xl: { px: 140, text: 'text-sm' },
 };
 
-/* ── SVG Bibble Karakteri ── */
-function BibbleSVG({ size = 64, wingSpeed = '0.4s', mood = 'idle' }) {
+/* ── Ağız ── */
+function Mouth({ mood }) {
+  const stroke = { fill: 'none', stroke: '#6b2150', strokeWidth: 2.4, strokeLinecap: 'round' };
+  switch (mood) {
+    case 'mutlu':
+    case 'heyecanli':
+    case 'romantik':
+      return (
+        <g>
+          <path d="M70 92 Q80 104 90 92 Q80 97 70 92 Z" fill="#7a1f4f" />
+          <path d="M75 97 Q80 101 85 97" fill="#f472b6" />
+        </g>
+      );
+    case 'saskin':
+      return <ellipse cx="80" cy="96" rx="5" ry="6.5" fill="#7a1f4f" />;
+    case 'kizgin':
+    case 'asi':
+      return <path d="M71 97 Q80 91 89 97" {...stroke} />;
+    case 'melankolik':
+      return <path d="M72 98 Q80 93 88 98" {...stroke} strokeWidth={2} />;
+    case 'havali':
+    case 'cool':
+      return <path d="M72 94 Q82 99 90 91" {...stroke} />;
+    default:
+      return <path d="M72 93 Q80 100 88 93" {...stroke} />;
+  }
+}
+
+/* ── SVG Bibble ── */
+export function BibbleSVG({ size = 68, wingSpeed = '0.2s', mood = 'idle' }) {
+  const uid = useId().replace(/:/g, '');
+  const id = (n) => `${n}-${uid}`;
+  const lookX = mood === 'saskin' ? 0 : 1.5;
+  const blink = mood !== 'saskin';
+
   return (
-    <svg viewBox="0 0 120 120" width={size} height={size} style={{ overflow: 'visible' }}>
+    <svg viewBox="0 0 160 160" width={size} height={size} style={{ overflow: 'visible', display: 'block' }} aria-hidden="true">
       <defs>
-        <radialGradient id="bodyGrad" cx="50%" cy="40%" r="50%">
-          <stop offset="0%" stopColor="#a7f3d0" />
-          <stop offset="100%" stopColor="#6ee7b7" />
+        {/* Tüy efekti */}
+        <filter id={id('fur')} x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="3" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id={id('hair')} x="-30%" y="-30%" width="160%" height="160%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="2" seed="8" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="9" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id={id('soft')}>
+          <feGaussianBlur stdDeviation="1.2" />
+        </filter>
+
+        <radialGradient id={id('body')} cx="42%" cy="35%" r="70%">
+          <stop offset="0%" stopColor="#c8f1ee" />
+          <stop offset="45%" stopColor="#8fd6d3" />
+          <stop offset="100%" stopColor="#4fa7ad" />
         </radialGradient>
-        <radialGradient id="bellyGrad" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#d8b4fe" />
-          <stop offset="100%" stopColor="#c084fc" />
+        <radialGradient id={id('spot')} cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stopColor="#d6a6f5" />
+          <stop offset="100%" stopColor="#a265d6" />
         </radialGradient>
-        <radialGradient id="cheekGrad" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#fbcfe8" />
-          <stop offset="100%" stopColor="#f9a8d4" />
+        <linearGradient id={id('hairG')} x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stopColor="#e05aa8" />
+          <stop offset="60%" stopColor="#f472c6" />
+          <stop offset="100%" stopColor="#fbb6e4" />
+        </linearGradient>
+        <radialGradient id={id('iris')} cx="45%" cy="40%" r="60%">
+          <stop offset="0%" stopColor="#7cc3ff" />
+          <stop offset="60%" stopColor="#2f6fd6" />
+          <stop offset="100%" stopColor="#1b3a8a" />
         </radialGradient>
+        <linearGradient id={id('wing')} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+          <stop offset="60%" stopColor="#ffe4d6" stopOpacity="0.75" />
+          <stop offset="100%" stopColor="#fbcfe8" stopOpacity="0.55" />
+        </linearGradient>
       </defs>
-      
-      {/* Sol Kanat */}
-      <g style={{ transformOrigin: '35px 45px', animation: `bibbleWingFlap ${wingSpeed} ease-in-out infinite alternate` }}>
-        <ellipse cx="18" cy="38" rx="18" ry="12" fill="#c4b5fd" opacity="0.7" transform="rotate(-30 18 38)" />
-        <ellipse cx="15" cy="32" rx="14" ry="9" fill="#ddd6fe" opacity="0.5" transform="rotate(-35 15 32)" />
+
+      {/* ── Kanatlar (gövdenin arkasında) ── */}
+      <g style={{ transformBox: 'fill-box', transformOrigin: '100% 80%', animation: `bibbleWingFlutter ${wingSpeed} ease-in-out infinite alternate` }}>
+        <path d="M58 98 C28 70 10 78 14 96 C18 112 40 114 58 104 Z" fill={`url(#${id('wing')})`} stroke="#fff" strokeOpacity="0.8" strokeWidth="1.2" />
+        <path d="M56 104 C36 112 26 128 38 134 C50 138 58 122 60 108 Z" fill={`url(#${id('wing')})`} stroke="#fff" strokeOpacity="0.7" strokeWidth="1" />
+        <path d="M54 100 C40 92 28 90 22 96" fill="none" stroke="#f9a8d4" strokeOpacity="0.6" strokeWidth="1" />
       </g>
-      
-      {/* Sağ Kanat */}
-      <g style={{ transformOrigin: '85px 45px', animation: `bibbleWingFlap ${wingSpeed} ease-in-out infinite alternate-reverse` }}>
-        <ellipse cx="102" cy="38" rx="18" ry="12" fill="#c4b5fd" opacity="0.7" transform="rotate(30 102 38)" />
-        <ellipse cx="105" cy="32" rx="14" ry="9" fill="#ddd6fe" opacity="0.5" transform="rotate(35 105 32)" />
+      <g style={{ transformBox: 'fill-box', transformOrigin: '0% 80%', animation: `bibbleWingFlutter ${wingSpeed} ease-in-out infinite alternate-reverse` }}>
+        <path d="M102 98 C132 70 150 78 146 96 C142 112 120 114 102 104 Z" fill={`url(#${id('wing')})`} stroke="#fff" strokeOpacity="0.8" strokeWidth="1.2" />
+        <path d="M104 104 C124 112 134 128 122 134 C110 138 102 122 100 108 Z" fill={`url(#${id('wing')})`} stroke="#fff" strokeOpacity="0.7" strokeWidth="1" />
+        <path d="M106 100 C120 92 132 90 138 96" fill="none" stroke="#f9a8d4" strokeOpacity="0.6" strokeWidth="1" />
       </g>
-      
-      {/* Gövde */}
-      <ellipse cx="60" cy="62" rx="28" ry="32" fill="url(#bodyGrad)" />
-      
-      {/* Karnı — mor lekeler */}
-      <ellipse cx="60" cy="70" rx="18" ry="20" fill="url(#bellyGrad)" opacity="0.4" />
-      <circle cx="50" cy="65" r="5" fill="#c084fc" opacity="0.3" />
-      <circle cx="68" cy="72" r="4" fill="#c084fc" opacity="0.25" />
-      <circle cx="55" cy="78" r="3.5" fill="#c084fc" opacity="0.3" />
-      
-      {/* Baş */}
-      <ellipse cx="60" cy="35" rx="22" ry="20" fill="url(#bodyGrad)" />
-      
-      {/* Kulaklar */}
-      <ellipse cx="38" cy="22" rx="6" ry="10" fill="#86efac" transform="rotate(-15 38 22)" />
-      <ellipse cx="40" cy="22" rx="4" ry="7" fill="#bbf7d0" transform="rotate(-15 40 22)" />
-      <ellipse cx="82" cy="22" rx="6" ry="10" fill="#86efac" transform="rotate(15 82 22)" />
-      <ellipse cx="80" cy="22" rx="4" ry="7" fill="#bbf7d0" transform="rotate(15 80 22)" />
-      
-      {/* Saç (pembe) */}
-      <ellipse cx="60" cy="18" rx="16" ry="10" fill="#f9a8d4" />
-      <ellipse cx="55" cy="14" rx="8" ry="7" fill="#fbcfe8" />
-      <ellipse cx="65" cy="15" rx="7" ry="6" fill="#f472b6" opacity="0.6" />
-      <circle cx="60" cy="12" r="5" fill="#f472b6" />
-      
-      {/* Gözler */}
-      <ellipse cx="50" cy="35" rx="6" ry="7" fill="white" />
-      <ellipse cx="70" cy="35" rx="6" ry="7" fill="white" />
-      <circle cx={mood === 'saskin' ? 51 : 52} cy="36" r="3.5" fill="#3b0764" />
-      <circle cx={mood === 'saskin' ? 69 : 68} cy="36" r="3.5" fill="#3b0764" />
-      <circle cx="53" cy="34" r="1.2" fill="white" />
-      <circle cx="69" cy="34" r="1.2" fill="white" />
-      
-      {/* Burun */}
-      <ellipse cx="60" cy="41" rx="3" ry="2.5" fill="#f9a8d4" />
-      
-      {/* Ağız — mood'a göre */}
-      {mood === 'mutlu' || mood === 'heyecanli' ? (
-        <path d="M52 46 Q60 54 68 46" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" />
-      ) : mood === 'saskin' ? (
-        <ellipse cx="60" cy="48" rx="4" ry="5" fill="#7c3aed" opacity="0.6" />
-      ) : mood === 'kizgin' || mood === 'asi' ? (
-        <path d="M53 48 Q60 44 67 48" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" />
-      ) : mood === 'melankolik' ? (
-        <path d="M53 49 Q60 45 67 49" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" />
-      ) : (
-        <path d="M54 47 Q60 51 66 47" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" />
-      )}
-      
-      {/* Yanaklar */}
-      <circle cx="42" cy="42" r="4" fill="url(#cheekGrad)" opacity="0.5" />
-      <circle cx="78" cy="42" r="4" fill="url(#cheekGrad)" opacity="0.5" />
-      
+
+      {/* ── Saç perçemi ── */}
+      <g filter={`url(#${id('hair')})`}>
+        <path
+          d="M52 46 C48 30 56 18 62 26 C60 10 74 4 76 20 C80 2 96 6 92 22 C102 10 114 20 104 34 C116 30 118 44 108 50 Z"
+          fill={`url(#${id('hairG')})`}
+        />
+      </g>
+
+      {/* ── Gövde + kafa (tüylü) ── */}
+      <g filter={`url(#${id('fur')})`}>
+        {/* Kulaklar */}
+        <path d="M44 60 L28 44 L50 50 Z" fill="#7fcfcc" />
+        <path d="M116 60 L132 44 L110 50 Z" fill="#7fcfcc" />
+        {/* Gövde */}
+        <ellipse cx="80" cy="118" rx="30" ry="28" fill={`url(#${id('body')})`} />
+        {/* Kafa */}
+        <ellipse cx="80" cy="74" rx="40" ry="36" fill={`url(#${id('body')})`} />
+        {/* Mor benekler */}
+        <ellipse cx="66" cy="118" rx="9" ry="11" fill={`url(#${id('spot')})`} />
+        <ellipse cx="94" cy="126" rx="8" ry="9" fill={`url(#${id('spot')})`} />
+        <ellipse cx="88" cy="106" rx="6" ry="6" fill={`url(#${id('spot')})`} />
+        <ellipse cx="72" cy="138" rx="6" ry="5" fill={`url(#${id('spot')})`} />
+        <ellipse cx="108" cy="58" rx="5" ry="4" fill={`url(#${id('spot')})`} opacity="0.8" />
+        {/* Kollar */}
+        <ellipse cx="50" cy="108" rx="7" ry="11" fill="#7fcfcc" transform="rotate(30 50 108)" />
+        <ellipse cx="110" cy="108" rx="7" ry="11" fill="#7fcfcc" transform="rotate(-30 110 108)" />
+      </g>
+
+      {/* İç kulak */}
+      <path d="M42 57 L33 48 L47 52 Z" fill="#f9a8d4" opacity="0.85" />
+      <path d="M118 57 L127 48 L113 52 Z" fill="#f9a8d4" opacity="0.85" />
+
       {/* Ayaklar */}
-      <ellipse cx="50" cy="92" rx="7" ry="4" fill="#86efac" />
-      <ellipse cx="70" cy="92" rx="7" ry="4" fill="#86efac" />
-      
-      {/* Kollar */}
-      <ellipse cx="33" cy="60" rx="5" ry="8" fill="#6ee7b7" transform="rotate(15 33 60)" />
-      <ellipse cx="87" cy="60" rx="5" ry="8" fill="#6ee7b7" transform="rotate(-15 87 60)" />
+      <ellipse cx="68" cy="146" rx="9" ry="6" fill="#a265d6" />
+      <ellipse cx="92" cy="146" rx="9" ry="6" fill="#a265d6" />
+      <ellipse cx="66" cy="144" rx="4" ry="2" fill="#d6a6f5" opacity="0.8" />
+      <ellipse cx="90" cy="144" rx="4" ry="2" fill="#d6a6f5" opacity="0.8" />
+
+      {/* ── Gözler ── */}
+      <g>
+        {[62, 98].map((cx, i) => (
+          <g key={cx}>
+            <ellipse cx={cx} cy="74" rx="13" ry="15" fill="#fff" />
+            <g style={blink ? { transformBox: 'fill-box', transformOrigin: 'center', animation: 'bibbleBlink 4.5s infinite' } : undefined}>
+              <circle cx={cx + lookX} cy="76" r="9.5" fill={`url(#${id('iris')})`} />
+              <circle cx={cx + lookX} cy="77" r="4.6" fill="#0b1640" />
+              <circle cx={cx + lookX + 3} cy="72" r="2.6" fill="#fff" />
+              <circle cx={cx + lookX - 3} cy="80" r="1.2" fill="#fff" opacity="0.8" />
+            </g>
+            {/* Göz kapağı + kirpik */}
+            <path d={`M${cx - 13} 70 Q${cx} 56 ${cx + 13} 70`} fill="none" stroke="#3b6f73" strokeWidth="2.2" strokeLinecap="round" />
+            {i === 0 ? (
+              <path d={`M${cx - 12} 66 l-5 -4 M${cx - 8} 62 l-3 -5`} stroke="#2c4d50" strokeWidth="1.8" strokeLinecap="round" />
+            ) : (
+              <path d={`M${cx + 12} 66 l5 -4 M${cx + 8} 62 l3 -5`} stroke="#2c4d50" strokeWidth="1.8" strokeLinecap="round" />
+            )}
+            {(mood === 'kizgin' || mood === 'asi') && (
+              <path d={i === 0 ? `M${cx - 12} 58 L${cx + 10} 64` : `M${cx + 12} 58 L${cx - 10} 64`} stroke="#2c4d50" strokeWidth="3" strokeLinecap="round" />
+            )}
+            {mood === 'havali' || mood === 'cool' ? (
+              <rect x={cx - 15} y="66" width="30" height="13" rx="6" fill="#1f2937" opacity="0.92" />
+            ) : null}
+          </g>
+        ))}
+        {(mood === 'havali' || mood === 'cool') && <path d="M77 72 L83 72" stroke="#1f2937" strokeWidth="3" />}
+      </g>
+
+      {/* Burun */}
+      <path d="M76 86 Q80 83 84 86 Q80 91 76 86 Z" fill="#f472b6" />
+
+      {/* Ağız */}
+      <Mouth mood={mood} />
+
+      {/* Yanaklar */}
+      <ellipse cx="50" cy="90" rx="7" ry="4.5" fill="#f9a8d4" opacity="0.55" filter={`url(#${id('soft')})`} />
+      <ellipse cx="110" cy="90" rx="7" ry="4.5" fill="#f9a8d4" opacity="0.55" filter={`url(#${id('soft')})`} />
     </svg>
   );
 }
@@ -139,76 +214,52 @@ export default function BibbleCharacter({
 }) {
   const [sparkles, setSparkles] = useState([]);
   const config = MOOD_CONFIG[mood] || MOOD_CONFIG.idle;
-  const sizeConfig = SIZE_MAP[size] || SIZE_MAP.md;
+  const sizeConfig = typeof size === 'number' ? { px: size, text: 'text-xs' } : SIZE_MAP[size] || SIZE_MAP.md;
 
-  // Sparkle efekti
+  // Mutluyken etrafa peri tozu saçar
   useEffect(() => {
-    if (mood === 'heyecanli' || mood === 'mutlu') {
+    if (mood === 'heyecanli' || mood === 'mutlu' || flying) {
       const interval = setInterval(() => {
-        setSparkles(prev => {
-          const newSparkle = {
-            id: Date.now() + Math.random(),
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            size: Math.random() * 8 + 4,
-          };
-          return [...prev.slice(-6), newSparkle];
-        });
-      }, 500);
+        setSparkles((prev) => [
+          ...prev.slice(-7),
+          { id: Date.now() + Math.random(), x: 20 + Math.random() * 60, y: 50 + Math.random() * 40, s: Math.random() * 6 + 5 },
+        ]);
+      }, 380);
       return () => clearInterval(interval);
-    } else {
-      setSparkles([]);
     }
-  }, [mood]);
+    setSparkles([]);
+  }, [mood, flying]);
 
   return (
     <div className={`relative inline-flex flex-col items-center ${className}`}>
-      {/* Sparkle parçacıkları */}
-      {sparkles.map(s => (
-        <div
+      {sparkles.map((s) => (
+        <span
           key={s.id}
           className="absolute pointer-events-none"
-          style={{
-            left: `${s.x}%`,
-            top: `${s.y}%`,
-            fontSize: `${s.size}px`,
-            animation: 'sparkleFloat 1s ease-out forwards',
-          }}
+          style={{ left: `${s.x}%`, top: `${s.y}%`, fontSize: s.s, animation: 'sparkleFloat 1.2s ease-out forwards', color: '#fde68a' }}
         >
-          ✨
-        </div>
+          ✦
+        </span>
       ))}
 
-      {/* Glow efekti */}
-      <div
-        className="absolute inset-0 rounded-full blur-xl opacity-30"
-        style={{ backgroundColor: config.bgGlow }}
-      />
+      <div className="absolute inset-2 rounded-full blur-xl opacity-40" style={{ backgroundColor: config.glow }} />
 
-      {/* Ana Bibble */}
       <div
         style={{
-          width: sizeConfig.w,
-          height: sizeConfig.h,
-          animation: flying
-            ? 'bibbleFlyAround 3s ease-in-out infinite'
-            : `${config.bodyAnim} 1.5s ease-in-out infinite`,
+          width: sizeConfig.px,
+          height: sizeConfig.px,
+          animation: flying ? 'bibbleFlyAround 2.6s ease-in-out infinite' : `${config.anim} 1.8s ease-in-out infinite`,
         }}
       >
-        <BibbleSVG size={sizeConfig.w} wingSpeed={config.wingSpeed} mood={mood} />
+        <BibbleSVG size={sizeConfig.px} wingSpeed={config.wing} mood={mood} />
       </div>
 
-      {/* Mood emoji overlay */}
       {mood !== 'idle' && (
-        <div
-          className="absolute -top-1 -right-1 text-lg"
-          style={{ animation: 'emojiBounce 0.6s ease-in-out infinite alternate' }}
-        >
+        <div className="absolute -top-1 -right-1 text-lg" style={{ animation: 'emojiBounce 0.6s ease-in-out infinite alternate' }}>
           {config.emoji}
         </div>
       )}
 
-      {/* Tepki baloncuğu */}
       {showReaction && reactionText && (
         <div
           className={`mt-2 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 ${sizeConfig.text} font-bold shadow-md max-w-[180px] text-center relative`}
@@ -222,45 +273,12 @@ export default function BibbleCharacter({
   );
 }
 
-/* Küçük uçan Bibble — Sayfa arka planında süzülen animasyonlu versiyon */
+/* Küçük uçan Bibble — geriye dönük uyumluluk için (artık BibbleStage tercih edilir) */
 export function FloatingBibble({ active = true }) {
-  const [position, setPosition] = useState({ x: 85, y: 15 });
-
-  useEffect(() => {
-    if (!active) return;
-    const interval = setInterval(() => {
-      setPosition({
-        x: 60 + Math.sin(Date.now() / 3000) * 25,
-        y: 10 + Math.cos(Date.now() / 2500) * 12,
-      });
-    }, 50);
-    return () => clearInterval(interval);
-  }, [active]);
-
   if (!active) return null;
-
   return (
-    <div
-      className="fixed pointer-events-none z-40 transition-all duration-1000 ease-in-out opacity-40 hover:opacity-70"
-      style={{
-        left: `${position.x}%`,
-        top: `${position.y}%`,
-      }}
-    >
-      <div style={{ animation: 'bibbleFlyAround 2s ease-in-out infinite' }}>
-        <BibbleSVG size={48} wingSpeed="0.25s" mood="idle" />
-      </div>
-      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
-        {[0, 1, 2].map(i => (
-          <span
-            key={i}
-            className="text-[6px]"
-            style={{ animation: `sparkleFloat 1.5s ease-out infinite`, animationDelay: `${i * 0.3}s` }}
-          >
-            ✨
-          </span>
-        ))}
-      </div>
+    <div className="fixed pointer-events-none z-30 right-6 top-24 opacity-70" style={{ animation: 'bibbleFly 6s ease-in-out infinite' }}>
+      <BibbleSVG size={52} wingSpeed="0.15s" mood="idle" />
     </div>
   );
 }

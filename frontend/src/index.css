@@ -220,3 +220,78 @@ body {
   .animate-slide-in-right { animation: slide-in-right 0.3s ease-out forwards; }
 }
 
+/* ═══ Bibble v3 — Kanat, göz kırpma ═══ */
+@keyframes bibbleWingFlutter {
+  0%   { transform: rotate(-14deg) scaleY(1); }
+  100% { transform: rotate(16deg) scaleY(0.82); }
+}
+@keyframes bibbleBlink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+
+/* ═══ Bibble Sahnesi ═══ */
+.bibble-stage {
+  box-shadow: 0 20px 50px -20px rgba(168, 85, 247, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+.bibble-stage-sky {
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(255, 255, 255, 0.9), transparent 45%),
+    radial-gradient(ellipse at 85% 25%, rgba(253, 230, 138, 0.35), transparent 40%),
+    linear-gradient(180deg, #fbe4f3 0%, #f3e3ff 45%, #e9f7f0 100%);
+  background-size: 200% 200%;
+  animation: auroraShift 18s ease-in-out infinite;
+}
+.bibble-bokeh {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(6px);
+  opacity: 0.55;
+  animation-name: stageBokeh;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+@keyframes stageBokeh {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.35; }
+  50% { transform: translate(14px, -18px) scale(1.25); opacity: 0.7; }
+}
+@keyframes stageSway {
+  0% { transform: rotate(-5deg); }
+  100% { transform: rotate(5deg); }
+}
+.bibble-bubble {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(233, 213, 255, 0.9);
+  border-radius: 20px;
+  padding: 10px 14px;
+  box-shadow: 0 10px 30px -10px rgba(147, 51, 234, 0.35);
+  transition: transform 0.18s ease-out;
+}
+.bibble-caret {
+  color: #c084fc;
+  animation: pulse-soft 0.8s steps(2) infinite;
+}
+
+/* ═══ Splash ═══ */
+@keyframes splashOut {
+  to { opacity: 0; transform: scale(1.04); visibility: hidden; }
+}
+.splash-out { animation: splashOut 0.5s ease-in forwards; }
+@keyframes logoIn {
+  0% { opacity: 0; transform: translateY(16px) scale(0.96); letter-spacing: 0.2em; }
+  100% { opacity: 1; transform: translateY(0) scale(1); letter-spacing: 0; }
+}
+
+/* ═══ Mobil uygulama kabuğu ═══ */
+html, body { overscroll-behavior: none; }
+* { -webkit-tap-highlight-color: transparent; }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pt-safe { padding-top: env(safe-area-inset-top); }
+@media (max-width: 767px) {
+  .mobile-main { padding-bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
+  input, textarea, select { font-size: 16px !important; } /* iOS zoom'u engelle */
+}
+
+
